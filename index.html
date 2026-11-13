@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>     
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -8,7 +8,7 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="قارئ الكود الشريطي">
 <meta property="og:description" content="اقرأ الكود الشريطي بالكاميرا أو من صورة، وتعرّف على المنتج وسعره المرجعي.">
-<meta property="og:image" content="https://smwknjyb5-glitch.github.io/codbar/barcode.jpg">
+<meta property="og:image" content="https://USERNAME.github.io/REPO/barcode.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:url" content="https://USERNAME.github.io/REPO/barcode.html">
@@ -45,13 +45,38 @@ input.ar{direction:rtl}
 .pv{font-size:1.8rem;font-weight:800;color:var(--gold);direction:rtl}
 .pv.none{font-size:1.05rem;color:var(--muted);font-weight:600}
 .note{font-size:.8rem;color:var(--muted);text-align:center;margin-top:6px;line-height:1.6}
+
+#invCard .row input.ar,#invCard .row input.dt{min-width:130px}
+table.inv{width:100%;border-collapse:collapse;margin-top:10px;font-size:.9rem}
+table.inv th{color:var(--muted);font-weight:600}
+table.inv th,table.inv td{border-bottom:1px solid #ffffff1f;padding:6px 3px;text-align:center}
+table.inv td.nm{text-align:right}
+table.inv td.nm small{display:block;color:var(--muted);direction:ltr;text-align:right}
+table.inv input{width:64px;min-width:0;padding:6px;border-radius:8px;border:1px solid #ffffff30;background:#0b1b3a;color:var(--text);text-align:center;direction:ltr;font-size:.95rem}
+.tot{display:flex;justify-content:space-between;align-items:center;padding:6px 2px;gap:8px}
+.tot.big{font-size:1.3rem;font-weight:800;color:var(--gold);border-top:1px solid var(--gold);margin-top:4px}
+.tot input{width:70px;min-width:0;padding:6px;border-radius:8px;border:1px solid #ffffff30;background:#0b1b3a;color:var(--text);text-align:center;direction:ltr}
+button.x{background:none;color:var(--err);font-size:1.1rem;min-width:0;flex:0;padding:2px 6px}
+.empty{text-align:center;color:var(--muted);padding:14px 0}
+.invhead{display:none;text-align:center;margin-bottom:6px}
+@media print{
+  body{background:#fff;color:#000;padding:0}
+  .noprint{display:none!important}
+  #invCard{background:#fff;color:#000;border:0;display:block!important}
+  #invCard .meta,table.inv th,table.inv td.nm small{color:#333}
+  #invCard input{border:0!important;background:transparent!important;color:#000!important;font-weight:600}
+  #invCard input::placeholder{color:transparent}
+  table.inv td,table.inv th{border-bottom:1px solid #999}
+  .tot.big{color:#000;border-top:2px solid #000}
+  .invhead{display:block}
+}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>📷 قارئ الكود الشريطي</h1>
+  <h1 class="noprint">📷 قارئ الكود الشريطي</h1>
 
-  <div class="card">
+  <div class="card noprint">
     <div class="view">
       <video id="video" playsinline muted></video>
       <img id="preview" alt="">
@@ -69,7 +94,7 @@ input.ar{direction:rtl}
     </div>
   </div>
 
-  <div class="card" id="resCard" style="display:none">
+  <div class="card noprint" id="resCard" style="display:none">
     <div class="meta">النتيجة</div>
     <div class="code" id="code"></div>
     <div class="meta" id="fmt"></div>
@@ -95,13 +120,39 @@ input.ar{direction:rtl}
       <button id="delPriceBtn" class="sec">حذف</button>
     </div>
     <div class="row">
+      <input type="text" id="qty" inputmode="numeric" value="1" style="flex:1;min-width:70px" aria-label="الكمية">
+      <button id="addBtn" style="flex:3">➕ أضف إلى الفاتورة</button>
+    </div>
+    <label class="note" style="display:block"><input type="checkbox" id="autoAdd"> إضافة تلقائية إلى الفاتورة عند كل قراءة (كمية 1)</label>
+    <div class="row">
       <button id="copyBtn">نسخ</button>
       <button id="searchBtn" class="sec">بحث عن المنتج</button>
     </div>
     <div class="note">السعر المحفوظ عندك له الأولوية، ثم الأسعار التي يشاركها المستخدمون في قاعدة Open Prices (إن وُجدت).</div>
   </div>
 
-  <div class="card">
+  <div class="card" id="invCard">
+    <div class="meta noprint" style="text-align:right">🧾 فاتورة التسوق</div>
+    <div class="invhead"><h2 id="invTitle" style="margin:0"></h2><div>فاتورة تسوق</div></div>
+    <div class="row">
+      <input type="text" id="invStore" class="ar" placeholder="اسم المحل">
+      <input type="text" id="invClient" class="ar" placeholder="اسم الزبون">
+    </div>
+    <div class="row">
+      <input type="text" id="invDate" class="dt" placeholder="التاريخ والتوقيت">
+      <button id="nowBtn" class="sec noprint">الآن</button>
+    </div>
+    <div style="overflow-x:auto"><table class="inv"><thead><tr><th>المنتج</th><th>السعر</th><th>الكمية</th><th>المجموع</th><th class="noprint"></th></tr></thead><tbody id="invBody"></tbody></table></div>
+    <div class="tot"><span>المجموع</span><span id="invSub">0 دج</span></div>
+    <div class="tot"><span>خصم %</span><input type="text" id="invDisc" inputmode="decimal" value="0"></div>
+    <div class="tot big"><span>الإجمالي</span><span id="invTotal">0 دج</span></div>
+    <div class="row noprint">
+      <button id="printBtn">🖨 طباعة / PDF</button>
+      <button id="newInvBtn" class="sec">فاتورة جديدة</button>
+    </div>
+  </div>
+
+  <div class="card noprint">
     <div class="meta" style="text-align:right">قائمة الأسعار المرجعية المحفوظة (<span id="pCount">0</span>)</div>
     <div class="row">
       <button id="exportBtn" class="sec">تصدير CSV</button>
@@ -110,7 +161,7 @@ input.ar{direction:rtl}
     <div class="note">صيغة الملف: سطر لكل منتج — الكود ; الاسم ; السعر</div>
   </div>
 
-  <div class="card">
+  <div class="card noprint">
     <div class="meta" style="text-align:right">السجل</div>
     <div class="hist" id="hist"></div>
     <div class="row"><button id="clearBtn" class="sec">مسح السجل</button></div>
@@ -241,8 +292,9 @@ function showResult(code, format, silent) {
   $('code').textContent = code;
   $('fmt').textContent = format ? 'النوع: ' + format : '';
   $('chk').textContent = validity(code, format);
-  lookupPrice(code);
+  const lp = lookupPrice(code);
   if (silent) return;
+  lp.then(() => { if ($('autoAdd').checked && cur.code === code) addItem(1); });
   addHistory(code, format);
   if (navigator.vibrate) navigator.vibrate(120);
   try {
@@ -398,6 +450,78 @@ $('importFile').onchange = async e => {
   setStatus('تم استيراد ' + n + ' سعر');
   if (cur.code) lookupPrice(cur.code);
 };
+
+// ---- invoice ----
+let inv = { store: '', client: '', date: '', disc: 0, items: [] };
+try { const sv = JSON.parse(localStorage.getItem('barcodeInvoice') || 'null'); if (sv && Array.isArray(sv.items)) inv = Object.assign(inv, sv); } catch (e) {}
+function saveInv() { try { localStorage.setItem('barcodeInvoice', JSON.stringify(inv)); } catch (e) {} }
+function nowStr() { return new Date().toLocaleString('ar-DZ', { dateStyle: 'short', timeStyle: 'short' }); }
+const num = v => { const n = parseFloat(toLatinDigits(String(v).trim())); return isFinite(n) ? n : 0; };
+
+function updateTotals() {
+  const sub = inv.items.reduce((a, it) => a + it.price * it.qty, 0);
+  const disc = Math.min(100, Math.max(0, inv.disc || 0));
+  $('invSub').textContent = fmtNum(sub) + ' دج';
+  $('invTotal').textContent = fmtNum(sub * (1 - disc / 100)) + ' دج';
+}
+function renderInv() {
+  const body = $('invBody');
+  body.innerHTML = '';
+  if (!inv.items.length) {
+    const tr = document.createElement('tr'), td = document.createElement('td');
+    td.colSpan = 5; td.className = 'empty'; td.textContent = 'لا توجد منتجات بعد — اقرأ كودًا ثم اضغط «أضف إلى الفاتورة»';
+    tr.appendChild(td); body.appendChild(tr);
+  }
+  inv.items.forEach((it, i) => {
+    const tr = document.createElement('tr');
+    const nm = document.createElement('td'); nm.className = 'nm';
+    nm.textContent = it.name;
+    const sm = document.createElement('small'); sm.textContent = it.code; nm.appendChild(sm);
+    const tp = document.createElement('td'), ip = document.createElement('input');
+    ip.type = 'text'; ip.inputMode = 'decimal'; ip.value = it.price;
+    tp.appendChild(ip);
+    const tq = document.createElement('td'), iq = document.createElement('input');
+    iq.type = 'text'; iq.inputMode = 'numeric'; iq.value = it.qty;
+    tq.appendChild(iq);
+    const tt = document.createElement('td'); tt.textContent = fmtNum(it.price * it.qty);
+    const tx = document.createElement('td'); tx.className = 'noprint';
+    const bx = document.createElement('button'); bx.className = 'x'; bx.textContent = '✕'; bx.title = 'حذف';
+    tx.appendChild(bx);
+    ip.oninput = () => { it.price = Math.max(0, num(ip.value)); tt.textContent = fmtNum(it.price * it.qty); saveInv(); updateTotals(); };
+    iq.oninput = () => { it.qty = Math.max(1, Math.round(num(iq.value)) || 1); tt.textContent = fmtNum(it.price * it.qty); saveInv(); updateTotals(); };
+    bx.onclick = () => { inv.items.splice(i, 1); saveInv(); renderInv(); };
+    tr.append(nm, tp, tq, tt, tx);
+    body.appendChild(tr);
+  });
+  $('invStore').value = inv.store; $('invClient').value = inv.client; $('invDate').value = inv.date; $('invDisc').value = inv.disc;
+  $('invTitle').textContent = inv.store;
+  updateTotals();
+}
+function addItem(qty) {
+  const code = $('code').textContent;
+  if (!code) return;
+  const typed = $('pIn').value.trim();
+  let price = typed !== '' ? num(typed) : (cur.local ? cur.local.price : (cur.dzd ? cur.dzd.price : 0));
+  const name = $('pName').value.trim() || (cur.local && cur.local.name) || (cur.info && cur.info.name) || code;
+  if (!inv.date) inv.date = nowStr();
+  const ex = inv.items.find(it => it.code === code && it.price === price);
+  if (ex) ex.qty += qty; else inv.items.push({ code, name, price, qty });
+  saveInv(); renderInv();
+  setStatus(price > 0 ? 'تمت الإضافة إلى الفاتورة' : 'أُضيف المنتج بدون سعر — أدخل السعر في الجدول', price <= 0);
+}
+$('addBtn').onclick = () => addItem(Math.max(1, Math.round(num($('qty').value)) || 1));
+$('invStore').oninput = e => { inv.store = e.target.value; $('invTitle').textContent = inv.store; saveInv(); };
+$('invClient').oninput = e => { inv.client = e.target.value; saveInv(); };
+$('invDate').oninput = e => { inv.date = e.target.value; saveInv(); };
+$('nowBtn').onclick = () => { inv.date = nowStr(); $('invDate').value = inv.date; saveInv(); };
+$('invDisc').oninput = e => { inv.disc = Math.min(100, Math.max(0, num(e.target.value))); saveInv(); updateTotals(); };
+$('printBtn').onclick = () => { if (!inv.date) { inv.date = nowStr(); $('invDate').value = inv.date; saveInv(); } window.print(); };
+$('newInvBtn').onclick = () => {
+  if (inv.items.length && !confirm('هل تريد بدء فاتورة جديدة؟ ستُمسح الفاتورة الحالية.')) return;
+  inv = { store: inv.store, client: '', date: '', disc: 0, items: [] };
+  saveInv(); renderInv();
+};
+renderInv();
 
 // ---- events ----
 $('startBtn').onclick = startCamera;
