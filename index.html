@@ -1,4 +1,4 @@
- <!DOCTYPE html>     
+ <!DOCTYPE html>    
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -8,7 +8,7 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="قارئ الكود الشريطي">
 <meta property="og:description" content="اقرأ الكود الشريطي بالكاميرا أو من صورة، وتعرّف على المنتج وسعره المرجعي.">
-<meta property="og:image" content="https://smwknjyb5-glitch.github.io/codbar/barcode.jpg">
+<meta property="og:image" content="https://USERNAME.github.io/REPO/barcode.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:url" content="https://USERNAME.github.io/REPO/barcode.html">
@@ -17,7 +17,7 @@
 <style>
 :root{--bg:#0b1b3a;--card:#12285a;--gold:#e8c26a;--text:#f3f6ff;--muted:#9fb0d6;--ok:#4ade80;--err:#f87171}
 *{box-sizing:border-box}
-body{margin:0;font-family:"Segoe UI",Tahoma,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:14px}
+body{padding-bottom:90px!important;margin:0;font-family:"Segoe UI",Tahoma,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:14px}
 .wrap{max-width:560px;margin:auto}
 h1{color:var(--gold);text-align:center;font-size:1.5rem;margin:6px 0 14px}
 .card{background:var(--card);border-radius:16px;padding:14px;margin-bottom:14px;border:1px solid #ffffff18}
@@ -59,7 +59,10 @@ table.inv input{width:64px;min-width:0;padding:6px;border-radius:8px;border:1px 
 button.x{background:none;color:var(--err);font-size:1.1rem;min-width:0;flex:0;padding:2px 6px}
 .empty{text-align:center;color:var(--muted);padding:14px 0}
 .invhead{display:none;text-align:center;margin-bottom:6px}
+#bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:2px solid var(--gold);padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));display:none;align-items:center;justify-content:space-between;gap:10px;z-index:20;cursor:pointer;box-shadow:0 -6px 18px #0008}
+#bar button{flex:0 0 auto;min-width:130px}
 @media print{
+  body{padding-bottom:0!important}
   body{background:#fff;color:#000;padding:0}
   .noprint{display:none!important}
   #invCard{background:#fff;color:#000;border:0;display:block!important}
@@ -168,6 +171,10 @@ button.x{background:none;color:var(--err);font-size:1.1rem;min-width:0;flex:0;pa
   </div>
 </div>
 
+<div id="bar" class="noprint">
+  <div><div class="meta" id="barCnt" style="text-align:right"></div><div id="barTot" style="font-size:1.35rem;font-weight:800;color:var(--gold)"></div></div>
+  <button id="barBtn">🧾 عرض الفاتورة</button>
+</div>
 <script>
 const $ = id => document.getElementById(id);
 const video = $('video'), preview = $('preview'), statusEl = $('status');
@@ -462,7 +469,12 @@ function updateTotals() {
   const sub = inv.items.reduce((a, it) => a + it.price * it.qty, 0);
   const disc = Math.min(100, Math.max(0, inv.disc || 0));
   $('invSub').textContent = fmtNum(sub) + ' دج';
-  $('invTotal').textContent = fmtNum(sub * (1 - disc / 100)) + ' دج';
+  const tot = sub * (1 - disc / 100);
+  $('invTotal').textContent = fmtNum(tot) + ' دج';
+  const cnt = inv.items.reduce((a, it) => a + it.qty, 0);
+  $('bar').style.display = inv.items.length ? 'flex' : 'none';
+  $('barCnt').textContent = 'الفاتورة · ' + cnt + ' منتج';
+  $('barTot').textContent = fmtNum(tot) + ' دج';
 }
 function renderInv() {
   const body = $('invBody');
@@ -522,6 +534,12 @@ $('newInvBtn').onclick = () => {
   saveInv(); renderInv();
 };
 renderInv();
+$('bar').onclick = () => {
+  const r = $('invCard').getBoundingClientRect();
+  const inView = r.top < innerHeight * 0.5 && r.bottom > innerHeight * 0.3;
+  if (inView) { window.scrollTo({ top: 0, behavior: 'smooth' }); $('barBtn').textContent = '🧾 عرض الفاتورة'; }
+  else { $('invCard').scrollIntoView({ behavior: 'smooth', block: 'start' }); $('barBtn').textContent = '📷 العودة للمسح'; }
+};
 
 // ---- events ----
 $('startBtn').onclick = startCamera;
