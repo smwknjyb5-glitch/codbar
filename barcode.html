@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>قارئ الكود الشريطي</title>
+<meta name="description" content="اقرأ الكود الشريطي بالكاميرا أو من صورة، وتعرّف على المنتج وسعره المرجعي.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="قارئ الكود الشريطي">
+<meta property="og:description" content="اقرأ الكود الشريطي بالكاميرا أو من صورة، وتعرّف على المنتج وسعره المرجعي.">
+<meta property="og:image" content="https://USERNAME.github.io/REPO/barcode.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://USERNAME.github.io/REPO/barcode.html">
+<meta name="twitter:card" content="summary_large_image">
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+<style>
+:root{--bg:#0b1b3a;--card:#12285a;--gold:#e8c26a;--text:#f3f6ff;--muted:#9fb0d6;--ok:#4ade80;--err:#f87171}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",Tahoma,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:14px}
+.wrap{max-width:560px;margin:auto}
+h1{color:var(--gold);text-align:center;font-size:1.5rem;margin:6px 0 14px}
+.card{background:var(--card);border-radius:16px;padding:14px;margin-bottom:14px;border:1px solid #ffffff18}
+.view{position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:4/3}
+video,#preview{width:100%;height:100%;object-fit:cover;display:block}
+#preview{display:none;object-fit:contain}
+.frame{position:absolute;inset:25% 10%;border:2px solid var(--gold);border-radius:10px;pointer-events:none}
+.frame::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;background:#f87171;animation:s 1.6s infinite alternate}
+@keyframes s{from{top:8%}to{top:92%}}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+button,label.btn{flex:1;min-width:120px;background:var(--gold);color:#1a1a1a;border:0;border-radius:10px;padding:11px;font-size:1rem;font-weight:700;cursor:pointer;text-align:center}
+button.sec,label.btn{background:#ffffff1f;color:var(--text)}
+input[type=text]{flex:2;min-width:150px;padding:11px;border-radius:10px;border:1px solid #ffffff30;background:#0b1b3a;color:var(--text);font-size:1rem;direction:ltr;text-align:center}
+input.ar{direction:rtl}
+#status{text-align:center;color:var(--muted);margin-top:8px;font-size:.95rem;min-height:1.3em}
+.code{font-size:1.7rem;font-weight:800;direction:ltr;text-align:center;color:var(--ok);word-break:break-all;margin:6px 0}
+.meta{text-align:center;color:var(--muted)}
+.hist div{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #ffffff14;direction:ltr;cursor:pointer}
+.hist span:last-child{color:var(--muted);font-size:.85rem}
+.prod{display:none;align-items:center;gap:12px;margin:10px 0;background:#ffffff0d;border-radius:12px;padding:10px}
+.prod img{width:64px;height:64px;object-fit:contain;background:#fff;border-radius:8px;display:none}
+#pname{font-weight:700;font-size:1.05rem}
+#pbrand{color:var(--muted);font-size:.9rem}
+.price{background:#0b1b3a;border:1px solid var(--gold);border-radius:12px;padding:10px;margin:10px 0;text-align:center}
+.pv{font-size:1.8rem;font-weight:800;color:var(--gold);direction:rtl}
+.pv.none{font-size:1.05rem;color:var(--muted);font-weight:600}
+.note{font-size:.8rem;color:var(--muted);text-align:center;margin-top:6px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📷 قارئ الكود الشريطي</h1>
+
+  <div class="card">
+    <div class="view">
+      <video id="video" playsinline muted></video>
+      <img id="preview" alt="">
+      <div class="frame" id="frame"></div>
+    </div>
+    <div id="status">اضغط «تشغيل الكاميرا» أو اختر صورة</div>
+    <div class="row">
+      <button id="startBtn">تشغيل الكاميرا</button>
+      <button id="stopBtn" class="sec">إيقاف</button>
+      <label class="btn">اختيار صورة<input type="file" id="file" accept="image/*" hidden></label>
+    </div>
+    <div class="row">
+      <input type="text" id="manual" inputmode="numeric" placeholder="أو اكتب الرقم يدويًا">
+      <button id="checkBtn" class="sec">تحقق</button>
+    </div>
+  </div>
+
+  <div class="card" id="resCard" style="display:none">
+    <div class="meta">النتيجة</div>
+    <div class="code" id="code"></div>
+    <div class="meta" id="fmt"></div>
+    <div class="meta" id="chk"></div>
+
+    <div class="prod" id="prod">
+      <img id="pimg" alt="">
+      <div><div id="pname"></div><div id="pbrand"></div></div>
+    </div>
+
+    <div class="price">
+      <div class="meta">السعر المرجعي</div>
+      <div class="pv none" id="priceVal">جارٍ البحث…</div>
+      <div class="meta" id="priceSrc"></div>
+    </div>
+
+    <div class="row">
+      <input type="text" id="pName" class="ar" placeholder="اسم المنتج (اختياري)">
+      <input type="text" id="pIn" inputmode="decimal" placeholder="السعر بالدج">
+    </div>
+    <div class="row">
+      <button id="savePriceBtn">حفظ السعر المرجعي</button>
+      <button id="delPriceBtn" class="sec">حذف</button>
+    </div>
+    <div class="row">
+      <button id="copyBtn">نسخ</button>
+      <button id="searchBtn" class="sec">بحث عن المنتج</button>
+    </div>
+    <div class="note">السعر المحفوظ عندك له الأولوية، ثم الأسعار التي يشاركها المستخدمون في قاعدة Open Prices (إن وُجدت).</div>
+  </div>
+
+  <div class="card">
+    <div class="meta" style="text-align:right">قائمة الأسعار المرجعية المحفوظة (<span id="pCount">0</span>)</div>
+    <div class="row">
+      <button id="exportBtn" class="sec">تصدير CSV</button>
+      <label class="btn">استيراد CSV<input type="file" id="importFile" accept=".csv,.txt" hidden></label>
+    </div>
+    <div class="note">صيغة الملف: سطر لكل منتج — الكود ; الاسم ; السعر</div>
+  </div>
+
+  <div class="card">
+    <div class="meta" style="text-align:right">السجل</div>
+    <div class="hist" id="hist"></div>
+    <div class="row"><button id="clearBtn" class="sec">مسح السجل</button></div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const video = $('video'), preview = $('preview'), statusEl = $('status');
+let stream = null, timer = null, zxingReader = null, running = false, lastCode = '', lastTime = 0;
+let history = [];
+try { history = JSON.parse(localStorage.getItem('barcodeHistory') || '[]'); } catch (e) {}
+let prices = {};
+try { prices = JSON.parse(localStorage.getItem('barcodePrices') || '{}'); } catch (e) {}
+function savePrices() { try { localStorage.setItem('barcodePrices', JSON.stringify(prices)); } catch (e) {} $('pCount').textContent = Object.keys(prices).length; }
+
+const hasDetector = 'BarcodeDetector' in window;
+let detector = null;
+async function getDetector() {
+  if (detector) return detector;
+  let formats;
+  try { formats = await BarcodeDetector.getSupportedFormats(); } catch (e) { formats = undefined; }
+  detector = new BarcodeDetector(formats ? { formats } : undefined);
+  return detector;
+}
+
+function setStatus(t, err) { statusEl.textContent = t; statusEl.style.color = err ? 'var(--err)' : 'var(--muted)'; }
+
+// ---- EAN / UPC checksum ----
+function checkDigit(digits) {
+  const d = digits.split('').map(Number);
+  const len = d.length;
+  let sum = 0;
+  for (let i = 0; i < len - 1; i++) {
+    const posFromRight = len - 1 - i;
+    sum += d[i] * (posFromRight % 2 === 1 ? 3 : 1);
+  }
+  return (10 - (sum % 10)) % 10 === d[len - 1];
+}
+function validity(code, format) {
+  if (/^\d+$/.test(code) && [8, 12, 13, 14].includes(code.length)) {
+    return checkDigit(code) ? '✔ رقم التحقق صحيح' : '⚠ رقم التحقق غير صحيح';
+  }
+  return '';
+}
+
+// ---- reference price ----
+let lookupId = 0;
+let cur = { code: '', local: null, dzd: null, other: null, info: null, searching: false, offline: false };
+const fmtNum = n => (Math.round(n * 100) / 100).toLocaleString('ar-DZ');
+
+async function fetchJSON(url) {
+  const c = new AbortController();
+  const t = setTimeout(() => c.abort(), 9000);
+  try {
+    const r = await fetch(url, { signal: c.signal });
+    if (!r.ok) throw new Error('http ' + r.status);
+    return await r.json();
+  } finally { clearTimeout(t); }
+}
+
+function renderPrice() {
+  const pv = $('priceVal'), src = $('priceSrc');
+  pv.classList.remove('none');
+  if (cur.local) {
+    pv.textContent = fmtNum(cur.local.price) + ' دج';
+    src.textContent = 'محفوظ في جهازك';
+  } else if (cur.dzd) {
+    pv.textContent = fmtNum(cur.dzd.price) + ' دج';
+    src.textContent = 'Open Prices · ' + (cur.dzd.date || '') + (cur.dzd.count > 1 ? ' · ' + cur.dzd.count + ' سعر مسجّل' : '');
+  } else if (cur.other) {
+    pv.textContent = fmtNum(cur.other.price) + ' ' + cur.other.currency;
+    src.textContent = 'سعر بعملة أخرى (Open Prices) · ' + (cur.other.date || '');
+  } else {
+    pv.classList.add('none');
+    pv.textContent = cur.searching ? 'جارٍ البحث…' : 'غير متوفر — يمكنك إدخاله وحفظه أدناه';
+    src.textContent = cur.offline && !cur.searching ? 'تعذّر الاتصال بقاعدة الأسعار' : '';
+  }
+  const name = (cur.local && cur.local.name) || (cur.info && cur.info.name) || '';
+  const brand = cur.info ? [cur.info.brand, cur.info.qty].filter(Boolean).join(' · ') : '';
+  $('prod').style.display = (name || brand || (cur.info && cur.info.img)) ? 'flex' : 'none';
+  $('pname').textContent = name;
+  $('pbrand').textContent = brand;
+  const im = $('pimg');
+  if (cur.info && cur.info.img) { im.src = cur.info.img; im.style.display = 'block'; } else { im.style.display = 'none'; }
+}
+
+async function lookupPrice(code) {
+  const id = ++lookupId;
+  const local = prices[code] || null;
+  cur = { code, local, dzd: null, other: null, info: null, searching: true, offline: false };
+  $('pName').value = local ? (local.name || '') : '';
+  $('pIn').value = local ? local.price : '';
+  renderPrice();
+  if (!/^\d{6,14}$/.test(code)) { cur.searching = false; renderPrice(); return; }
+
+  const p1 = fetchJSON('https://world.openfoodfacts.org/api/v2/product/' + code + '.json?fields=product_name,product_name_ar,brands,quantity,image_front_small_url')
+    .then(j => {
+      if (id !== lookupId) return;
+      if (j && j.status === 1 && j.product) {
+        const p = j.product;
+        cur.info = { name: p.product_name_ar || p.product_name || '', brand: p.brands || '', qty: p.quantity || '', img: p.image_front_small_url || '' };
+      }
+    }).catch(() => { if (id === lookupId) cur.offline = true; });
+
+  const p2 = fetchJSON('https://prices.openfoodfacts.org/api/v1/prices?product_code=' + code + '&order_by=-date&size=50')
+    .then(j => {
+      if (id !== lookupId) return;
+      const items = (j && j.items || []).filter(x => typeof x.price === 'number');
+      const dz = items.filter(x => x.currency === 'DZD');
+      if (dz.length) {
+        const sorted = dz.map(x => x.price).sort((a, b) => a - b);
+        const med = sorted[Math.floor(sorted.length / 2)];
+        cur.dzd = { price: med, date: dz[0].date, count: dz.length };
+      } else if (items.length) {
+        cur.other = { price: items[0].price, currency: items[0].currency, date: items[0].date };
+      }
+    }).catch(() => { if (id === lookupId) cur.offline = true; });
+
+  await Promise.all([p1, p2]);
+  if (id !== lookupId) return;
+  cur.searching = false;
+  renderPrice();
+}
+
+function showResult(code, format, silent) {
+  $('resCard').style.display = 'block';
+  $('code').textContent = code;
+  $('fmt').textContent = format ? 'النوع: ' + format : '';
+  $('chk').textContent = validity(code, format);
+  lookupPrice(code);
+  if (silent) return;
+  addHistory(code, format);
+  if (navigator.vibrate) navigator.vibrate(120);
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator(); o.frequency.value = 880; o.connect(ctx.destination);
+    o.start(); setTimeout(() => { o.stop(); ctx.close(); }, 120);
+  } catch (e) {}
+  setStatus('تمت القراءة بنجاح');
+}
+
+function onCode(code, format) {
+  const now = Date.now();
+  if (code === lastCode && now - lastTime < 2500) return;
+  lastCode = code; lastTime = now;
+  showResult(code, format);
+}
+
+// ---- history ----
+function addHistory(code, format) {
+  history.unshift({ code, format: format || '', t: new Date().toLocaleTimeString('ar') });
+  history = history.slice(0, 30);
+  try { localStorage.setItem('barcodeHistory', JSON.stringify(history)); } catch (e) {}
+  renderHistory();
+}
+function renderHistory() {
+  const box = $('hist');
+  box.innerHTML = '';
+  if (!history.length) { box.innerHTML = '<div style="justify-content:center;color:var(--muted)">لا توجد قراءات بعد</div>'; return; }
+  history.forEach(h => {
+    const d = document.createElement('div');
+    const a = document.createElement('span'); a.textContent = h.code;
+    const b = document.createElement('span'); b.textContent = (h.format ? h.format + ' · ' : '') + h.t;
+    d.append(a, b);
+    d.onclick = () => showResult(h.code, h.format, true);
+    box.appendChild(d);
+  });
+}
+
+// ---- camera ----
+async function startCamera() {
+  if (running) return;
+  preview.style.display = 'none'; video.style.display = 'block'; $('frame').style.display = 'block';
+  try {
+    if (hasDetector) {
+      const det = await getDetector();
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }, audio: false });
+      video.srcObject = stream;
+      await video.play();
+      running = true;
+      setStatus('وجّه الكاميرا نحو الكود الشريطي…');
+      timer = setInterval(async () => {
+        if (video.readyState < 2) return;
+        try {
+          const r = await det.detect(video);
+          if (r.length) onCode(r[0].rawValue, r[0].format);
+        } catch (e) {}
+      }, 200);
+    } else if (window.ZXing) {
+      zxingReader = new ZXing.BrowserMultiFormatReader();
+      running = true;
+      setStatus('وجّه الكاميرا نحو الكود الشريطي…');
+      await zxingReader.decodeFromConstraints(
+        { video: { facingMode: { ideal: 'environment' } }, audio: false }, video,
+        (res, err) => { if (res) onCode(res.getText(), ZXing.BarcodeFormat[res.getBarcodeFormat()]); }
+      );
+    } else {
+      setStatus('تعذّر تحميل مكتبة القراءة. تحقق من الاتصال بالإنترنت أو استخدم اختيار صورة.', true);
+    }
+  } catch (e) {
+    running = false;
+    setStatus('تعذّر فتح الكاميرا: اسمح بالوصول إلى الكاميرا (يتطلب https).', true);
+  }
+}
+function stopCamera() {
+  running = false;
+  if (timer) { clearInterval(timer); timer = null; }
+  if (zxingReader) { try { zxingReader.reset(); } catch (e) {} zxingReader = null; }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  video.srcObject = null;
+  setStatus('تم إيقاف الكاميرا');
+}
+
+// ---- image ----
+async function readImage(file) {
+  stopCamera();
+  const url = URL.createObjectURL(file);
+  preview.src = url; preview.style.display = 'block'; video.style.display = 'none'; $('frame').style.display = 'none';
+  setStatus('جارٍ تحليل الصورة…');
+  try {
+    if (hasDetector) {
+      const det = await getDetector();
+      const bmp = await createImageBitmap(file);
+      const r = await det.detect(bmp);
+      if (r.length) { onCode(r[0].rawValue, r[0].format); return; }
+    }
+    if (window.ZXing) {
+      const reader = new ZXing.BrowserMultiFormatReader();
+      const res = await reader.decodeFromImageUrl(url);
+      onCode(res.getText(), ZXing.BarcodeFormat[res.getBarcodeFormat()]);
+      return;
+    }
+    setStatus('لم يتم العثور على كود شريطي في الصورة', true);
+  } catch (e) {
+    setStatus('لم يتم العثور على كود شريطي في الصورة. جرّب صورة أوضح وأقرب.', true);
+  }
+}
+
+// ---- price list: save / delete / CSV ----
+function toLatinDigits(s) {
+  return String(s).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace('٫', '.').replace(',', '.');
+}
+$('savePriceBtn').onclick = () => {
+  const code = $('code').textContent;
+  const val = parseFloat(toLatinDigits($('pIn').value.trim()));
+  if (!code) return;
+  if (!isFinite(val) || val < 0) { setStatus('أدخل سعرًا صحيحًا', true); return; }
+  prices[code] = { name: $('pName').value.trim(), price: val };
+  savePrices();
+  cur.local = prices[code];
+  renderPrice();
+  setStatus('تم حفظ السعر المرجعي');
+};
+$('delPriceBtn').onclick = () => {
+  const code = $('code').textContent;
+  if (!code || !prices[code]) return;
+  delete prices[code];
+  savePrices();
+  cur.local = null; $('pIn').value = ''; $('pName').value = '';
+  renderPrice();
+  setStatus('تم حذف السعر المحفوظ');
+};
+$('exportBtn').onclick = () => {
+  const lines = Object.entries(prices).map(([c, p]) => [c, (p.name || '').replace(/[;\n]/g, ' '), p.price].join(';'));
+  const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'reference-prices.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+};
+$('importFile').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  const txt = (await f.text()).replace(/^\ufeff/, '');
+  let n = 0;
+  txt.split(/\r?\n/).forEach(line => {
+    const parts = line.split(/[;\t,]/).map(s => s.trim());
+    if (parts.length < 2) return;
+    const code = toLatinDigits(parts[0]).replace(/\D/g, '');
+    const price = parseFloat(toLatinDigits(parts[parts.length - 1]));
+    const name = parts.length > 2 ? parts.slice(1, -1).join(' ') : '';
+    if (code && isFinite(price)) { prices[code] = { name, price }; n++; }
+  });
+  savePrices();
+  setStatus('تم استيراد ' + n + ' سعر');
+  if (cur.code) lookupPrice(cur.code);
+};
+
+// ---- events ----
+$('startBtn').onclick = startCamera;
+$('stopBtn').onclick = stopCamera;
+$('file').onchange = e => { if (e.target.files[0]) readImage(e.target.files[0]); e.target.value = ''; };
+$('checkBtn').onclick = () => {
+  const v = toLatinDigits($('manual').value.trim());
+  if (!v) return;
+  lastCode = ''; showResult(v, 'يدوي');
+};
+$('copyBtn').onclick = async () => {
+  const t = $('code').textContent;
+  try { await navigator.clipboard.writeText(t); setStatus('تم النسخ'); }
+  catch (e) { const i = document.createElement('input'); i.value = t; document.body.appendChild(i); i.select(); document.execCommand('copy'); i.remove(); setStatus('تم النسخ'); }
+};
+$('searchBtn').onclick = () => window.open('https://www.google.com/search?q=' + encodeURIComponent($('code').textContent), '_blank');
+$('clearBtn').onclick = () => { history = []; try { localStorage.removeItem('barcodeHistory'); } catch (e) {} renderHistory(); };
+window.addEventListener('pagehide', stopCamera);
+renderHistory();
+savePrices();
+</script>
+</body>
+</html>
